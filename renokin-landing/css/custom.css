@@ -63,9 +63,9 @@
 }
 
 .pricing-option.special-option {
-	border: 2px solid rgb(255, 0, 0) !important;
-	padding-bottom: 31px;
-	margin-left: -1px;
+	/*border: 2px solid rgb(255, 0, 0) !important;
+	margin-left: -1px;*/
+	padding-bottom: 33px;
 }
 
 .pricing-option p {
@@ -74,6 +74,10 @@
 
 .pricing-option .text-red {
 	color: red;
+}
+
+.pricing-option .special-price {
+	font-size: 20px;
 }
 
 

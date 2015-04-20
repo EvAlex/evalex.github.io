@@ -231,8 +231,12 @@
 									<span class="price">7791</span>
 									<span class="terms"> </span>
 								</div>
-								<p class="special-price text-red"><b>СПЕЦИАЛЬНАЯ ЦЕНА!</b></p>
-								<p class="special-price text-red">Вы экономите <b>3339 руб.</b></p>
+<<<<<<< HEAD
+								<p>Специальная цена!</p>
+								<p class="text-red">Вы экономите 3339 руб.</p>
+=======
+								<p><b>СПЕЦИАЛЬНАЯ ЦЕНА!</b> Вы экономите <b>3339 руб.</b></p>
+>>>>>>> ad1d6f74516c4da7cc74e067b6fcd43c0dee0270
 							</div>
 						</a>
 					</div>
