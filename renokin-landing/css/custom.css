@@ -61,3 +61,13 @@
 .pricing-option.active .normal-img {
 	display: none;
 }
+
+
+.btn.super-action.btn-red {
+	background-color: rgb(218, 0, 0);
+	border-color: rgb(180, 0, 0);
+}
+
+	.btn.super-action.btn-red:hover {
+		background-color: rgb(180, 0, 0);
+	}
