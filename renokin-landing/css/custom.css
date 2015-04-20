@@ -62,6 +62,20 @@
 	display: none;
 }
 
+.pricing-option.special-option {
+	border: 2px solid rgb(255, 0, 0) !important;
+	padding-bottom: 31px;
+	margin-left: -1px;
+}
+
+.pricing-option p {
+	margin-top: -20px;
+}
+
+.pricing-option .text-red {
+	color: red;
+}
+
 
 .btn.super-action.btn-red {
 	background-color: rgb(218, 0, 0);
