@@ -89,3 +89,12 @@
 	.btn.super-action.btn-red:hover {
 		background-color: rgb(180, 0, 0);
 	}
+	
+.btn.super-action.btn-gold {
+	background: linear-gradient(0, rgb(195, 115, 2), rgb(239, 168, 16) );
+	border-color: rgb(255, 192, 58);
+}
+
+	.btn.super-action.btn-gold:hover {
+		background-color: rgb(255, 192, 58);
+	}
