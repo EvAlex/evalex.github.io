@@ -1,10 +1,21 @@
 /*!---------- PLACE YOUR CUSTOM STYLES AND OVERRIDES HERE ----------*/
 
-.header-4 .hero-slider,
-.header-4 .hero-slider .slides li {
-	height: 550px;
-	max-height: 550px;
+.header-4 .hero-slider {
+  max-height: 55vh;
+  overflow: hidden;
 }
+
+@media all and (max-height: 900px) {
+  .header-4 .hero-slider .slides li {
+    height: 55vh;
+  }
+  .header-4 .container {
+    height: 50vh;
+  }
+}
+
+
+
 
 .flex-direction-nav a {
 	background-repeat: no-repeat !important;
