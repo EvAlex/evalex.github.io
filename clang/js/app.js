@@ -6,7 +6,7 @@
 //        .filter(function (e) { return e.indexOf('lang=') !== -1 })[0]
 //        .substring(6);
 //}
-i18n.init({ detectLngQS: 'lang', fallbackLng: 'en' }, function (err, t) {
+i18n.init({ detectLngQS: 'lang' }, function (err, t) {
     // translate nav
     //$(".nav").i18n();
 
