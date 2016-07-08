@@ -5,3 +5,7 @@
 .ol-1 > li>* {
     font-size: initial;
 }
+
+#disqus_thread {
+    margin-top: 50px;
+}
