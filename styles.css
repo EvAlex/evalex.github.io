@@ -16,3 +16,15 @@
     vertical-align: middle;
     margin-top: 5px;
 }
+
+.ol-1 > li {
+    font-size: 30px;
+}
+
+.ol-1 > li>* {
+    font-size: initial;
+}
+
+#disqus_thread {
+    margin-top: 50px;
+}

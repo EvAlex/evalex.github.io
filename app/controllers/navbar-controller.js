@@ -1,0 +1,13 @@
+
+NavbarController.$inject = ['$location'];
+export function NavbarController($location) { 
+    var vm = this;
+    
+    vm.isActive = isActive;
+
+    //////////////////////////////////////////////
+    
+    function isActive(viewLocation) { 
+        return viewLocation === $location.path();
+    };
+}
