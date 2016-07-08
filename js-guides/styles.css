@@ -1,0 +1,7 @@
+.ol-1 > li {
+    font-size: 30px;
+}
+
+.ol-1 > li>* {
+    font-size: initial;
+}
