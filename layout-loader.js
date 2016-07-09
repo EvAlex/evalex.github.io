@@ -1,17 +1,31 @@
 
 
 function LayoutLoader() {
-    var httpBackend = new HttpBackend();
+    var httpBackend = new HttpBackend(),
+        self = this;
 
     this.loadLayout = loadLayout;
     this.defaultSettings = getDefaultSettings();
 
     function loadLayout(settings) {
-        
+        settings = mergeWithDefaultSettings(settings);
+        httpBackend.get(settings.url, onLayoutLoaded)
     }
 
-    function getJson(url) {
-        
+    function onLayoutLoaded(err, layout) {
+        if (err) {
+            return console.error('Failed to load layout.', err);
+        }
+        debugger;
+        var doc = new HtmlDocument(layout);
+        document.open();
+        document.write(layout);
+        document.close();
+    }
+
+    function mergeWithDefaultSettings(settings) {
+        var defaultSettings = copy(self.defaultSettings);
+        return copy(settings, defaultSettings);
     }
 
     function getDefaultSettings() {
@@ -29,15 +43,66 @@ function LayoutLoader() {
             ]
         }
     }
+
+    function copy(obj, dest) {
+        if (typeof dest !== 'object') {
+            dest = {};
+        }
+        for (var key in obj) {
+            if (obj.hasOwnProperty(key)) {
+                var element = obj[key];
+                if (Array.isArray(element)) {
+                    dest[key] = [];
+                    for (var i = 0; i < element.length; i++) {
+                        dest[key].push(copy(element[i]));
+                    }
+                } else if (typeof element === 'object') {
+                    dest[key] = copy(element);
+                } else {
+                    dest[key] = element;
+                }
+            }
+        }
+        return dest;
+    }
+}
+
+function HtmlDocument(htmlString) {
+    this.html = getElement(htmlString, 'html');
+
+    //////////////////////////////////////////////////////////
+
+    function getElement(htmlString, name) {
+        var tag = document.createElement(name);
+        tag.innerHTML = findFirstTagContent(name, htmlString);
+        return tag;      
+    }
+
+    function findFirstTagContent(tag, str) {
+        var startI = str.indexOf('<' + tag) + 1 + tag.length,
+            endI = str.indexOf('</' + tag + '>'),
+            i,
+            j;
+        str = str.substring(startI, endI);
+        while (
+            (i = str.indexOf('>')) > (j = str.indexOf('="')) && j > 0
+        ) {
+            str = str.substring(j + 2);
+            str = str.substring(str.indexOf('"') + 1);
+        }
+        str = str.replace(/^\s*>/, '');
+
+        return str;
+    }
 }
 
 function HttpBackend() {
     
-    generateMethods();
+    generateMethods(this);
 
     //////////////////////////////////////////////////////////
 
-    function generateMethods() {
+    function generateMethods(target) {
         var methods = ['GET', 'PUT', 'POST', 'DELETE'],
             converters = [{ name: '', fn: returnAsIs }, { name: 'Json', fn: stringToJson }];
 
@@ -45,7 +110,7 @@ function HttpBackend() {
             for (var j = 0; j < converters.length; j++) {
                 var methodName = methods[i].toLowerCase() + converters[j].name,
                     context = { method: methods[i], dataConverterFn: converters[j].fn };
-                this[methodName] = (function (url, data, cb) {
+                target[methodName] = (function (url, data, cb) {
                     if (typeof cb === 'undefined' && typeof data === 'function') {
                         cb = data;
                         data = null;
@@ -64,15 +129,13 @@ function HttpBackend() {
                         ? null
                         : { status: xhr.status },
                     data = err === null
-                        ? null
-                        : dataConverterFn(xhr.responseText);
+                        ? dataConverterFn(xhr.responseText)
+                        : null;
                 cb(err, data);
             }
         })
         xhr.open(method, url);
-        if (data) {
-            xhr.send(data);
-        }
+        xhr.send(data);
     }
 
     function returnAsIs(data) {
