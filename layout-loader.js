@@ -9,6 +9,9 @@ function LayoutLoader() {
     this.defaultSettings = getDefaultSettings();
 
     function loadLayout(settings) {
+        if (typeof settings === 'undefined') {
+            settings = {};
+        }
         actualSettings = mergeWithDefaultSettings(settings);
         httpBackend.get(actualSettings.url, onLayoutLoaded)
     }
@@ -20,6 +23,7 @@ function LayoutLoader() {
         var layout = new HtmlDocument(layoutHtml),
             partial = new HtmlDocument(document.documentElement);
         mergeDocuments(partial, layout);
+        performCompleteCallbacks();
     }
 
     function mergeDocuments(partial, layout) {
@@ -31,19 +35,19 @@ function LayoutLoader() {
         }
         for (var i = 0; i < actualSettings.insertSections.length; i++) {
             var s = actualSettings.insertSections[i],
-                layoutBody = layout.querySelector('body'),
-                partialBody = partial.querySelector('body'),
                 layoutSection = layout.querySelector(s.layout),
                 partialSection = partial.querySelector(s.partial);
-            while (layoutSection.firstChild) {
-                layoutSection.removeChild(layoutSection.firstChild);
-            }
-            while (partialSection.firstChild) {
-                layoutSection.appendChild(partialSection.firstChild);
-            }
-            while (layoutBody.firstChild) {
-                partialBody.appendChild(layoutBody.firstChild);
-            }            
+            removeAllChildren(layoutSection);
+            moveAllChildren(partialSection, layoutSection);    
+        }
+        var layoutBody = layout.querySelector('body'),
+            partialBody = partial.querySelector('body');
+        moveAllChildren(layoutBody, partialBody);    
+    }
+
+    function performCompleteCallbacks() {
+        for (var i = 0; i < actualSettings.callbacks.complete.length; i++) {
+            actualSettings.callbacks.complete[i]();
         }
     }
 
@@ -52,21 +56,6 @@ function LayoutLoader() {
      * @param {HTMLElement} elementInLayout
      */
     function mergeDocumentsSection(elementInPartial, elementInLayout) {
-        /*
-        for (var j = 0; j < elementInPartial.childNodes.length; j++) {
-            var np = elementInPartial.childNodes.item(j),                
-                match = null
-            for (var i = 0; i < elementInLayout.childNodes.length && match === null; i++) {
-                var nl = elementInLayout.childNodes.item(i);
-                if (elementsAreSame(np, nl)) {
-                    match = nl;
-                }
-            }
-            if (match === null) {
-                elementInLayout.appendChild(np);
-            }
-        }
-        */
         for (var i = 0; i < elementInLayout.childNodes.length; i++) {
             var nl = elementInLayout.childNodes.item(i),
                 match = null;
@@ -103,6 +92,34 @@ function LayoutLoader() {
         return res;
     }
 
+    function activateNavLinks() {
+        var anchors = document.getElementsByTagName('a'),
+            currentHref = ensureEndsWith(window.location.href, '/'),
+            currentPath = ensureEndsWith(window.location.pathname, '/');
+        for (var i = 0; i < anchors.length; i++) {
+            var a = anchors.item(i),
+                href = ensureEndsWith(a.href, '/');
+            if (href === currentHref || href === currentPath) {
+                a.classList.add('active');
+                if (a.parentElement.nodeName.toLowerCase() === 'li') {
+                    a.parentElement.classList.add('active');
+                }
+            } else {
+                a.classList.remove('active');
+                if (a.parentElement.nodeName.toLowerCase() === 'li') {
+                    a.parentElement.classList.remove('active');
+                }             
+            }
+        }
+    }
+
+    function ensureEndsWith(str, trailingStr) {
+        if (str.substring(str.length - trailingStr.length) !== trailingStr) {
+            str += trailingStr;
+        }
+        return str;
+    }
+
     function mergeWithDefaultSettings(settings) {
         var defaultSettings = copy(self.defaultSettings);
         return copy(settings, defaultSettings);
@@ -122,11 +139,40 @@ function LayoutLoader() {
                     partial: 'body',
                     layout: '#partial-content'
                 }
-            ]
+            ],
+            callbacks: {
+                complete: [
+                    activateNavLinks
+                ]
+            }
+        }
+    }
+
+    /**
+     * Removes all child nodes from specified node
+     * @param {Node} node
+     */
+    function removeAllChildren(node) {
+        while (node.firstChild) {
+            node.removeChild(node.firstChild);
+        }    
+    }
+
+    /**
+     * Moves all child nodes from src node to dest node
+     * @param {Node} src
+     * @param {Node} dest
+     */
+    function moveAllChildren(src, dest) {
+        while (src.firstChild) {
+            dest.appendChild(src.firstChild);
         }
     }
 
     function copy(obj, dest) {
+        if (['number', 'string', 'function', 'undefined'].indexOf(typeof obj) !== -1 || obj === null) {
+            return obj;
+        }
         if (typeof dest !== 'object') {
             dest = {};
         }
