@@ -161,7 +161,7 @@ function LayoutLoader() {
             },
             loadingScreen: {
                 pageLoadTimeout: 1500,
-                fadeOutDelay: 300
+                fadeOutDelay: 500
             }
         }
     }
@@ -317,6 +317,15 @@ function HttpBackend() {
     }
 }
 
+/**
+ * @class 
+ *  Represents loading screen that is displayed while page is loading.
+ *  LayoutLoader inserts layout, that can contain styles and/or sripts
+ *  that affect visual representation. This creates bad user experience
+ *  and LoadingScreen should provide solution for this problem.
+ * 
+ *  The styles are taken from https://github.com/tobiasahlin/SpinKit
+ */
 function LoadingScreen() {
     var element = null,
         shown = false,
@@ -335,14 +344,7 @@ function LoadingScreen() {
         }
         shown = true;
 
-        element = document.createElement('div');
-        element.style.position = 'absolute';
-        element.style.top = 0;
-        element.style.right = 0;
-        element.style.bottom = 0;
-        element.style.left = 0;
-        element.style.background = 'white';
-        element.style.zIndex = 9000;
+        element = createLoadingScreenElement();
         document.body.appendChild(element);
     }
 
@@ -362,11 +364,41 @@ function LoadingScreen() {
         }, delay);
     }
 
+    /**
+     * Creates HTMLElement being the visual representation of LoadingScreen.
+     * Created element is not yet attached to current document.
+     * @returns {HTMLElement}
+     */
+    function createLoadingScreenElement() {
+        var element = createElement('div', 'loading-screen');
+        element
+            .appendChild(createElement('div', 'ls_inner'))
+                .appendChild(createElement('div', 'ls_spinner-wrap'))
+                    .appendChild(createElement('div', 'sk-folding-cube'))
+                        .appendChild(createElement('div', 'sk-cube1 sk-cube')).parentElement
+                        .appendChild(createElement('div', 'sk-cube2 sk-cube')).parentElement
+                        .appendChild(createElement('div', 'sk-cube4 sk-cube')).parentElement
+                        .appendChild(createElement('div', 'sk-cube3 sk-cube'));
+        return element;
+    }
+
     function getElement() {
         return element;
     }
 
     function isShown() {
         return shown;
+    }
+
+    /**
+     * Creates HTMLElement with specified tagName and cssClass
+     * @param {String} tagName
+     * @param {String} cssClass
+     * @returns {HTMLElement}
+     */
+    function createElement(tagName, cssClass) {
+        var e = document.createElement(tagName);
+        e.className = cssClass;
+        return e;
     }
 }
