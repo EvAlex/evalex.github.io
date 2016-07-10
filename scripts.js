@@ -16,26 +16,19 @@
         function init() {
             var options = {
                 lng: 'ru',
-                resources: {
-                    en: {
-                        translation: {
-                            "key": "hello world",
-                            "myself": {
-                                "fullName": "Alexander Pavlyuk"
-                            }
-                        }
-                    },
-                    ru: {
-                        translation: {
-                            "key": "Здравствуй, мир",
-                            "myself": {
-                                "fullName": "Павлюк Александр"
-                            }
-                        }
-                    }
-                }
+                fallbackLng: ["en"],
+                backend: {
+                    loadPath: "/locales/{{lng}}/{{ns}}.json"
+                },
+                ns: [
+                    "common",
+                    "welcome"
+                ],
+                defaultNS: "common"
             };
-	        i18next.init(options, onI18nInitialized);
+	        i18next
+                .use(i18nextXHRBackend)
+                .init(options, onI18nInitialized);
 
             $('.lang-list .lang-list-item').click(function () {
                 var key = $(this).data('key'),
@@ -62,8 +55,16 @@
 
         function translateElement() {
             var $e = $(this),
-                key = $e.data('i18n'),
-                value = translate(key);
+                expr = $e.data('i18n'),
+                ns = expr.indexOf(':') === -1 
+                    ? null 
+                    : expr.split(':')[0],
+                key = expr.indexOf(':') === -1 
+                    ? expr 
+                    : expr.split(':')[1].replace(/\s*/g, ''),
+                value = ns === null 
+                    ? translate(key)
+                    : translate(key, { ns: ns });
             if (key !== value) {    //  translation successful
                 $e.text(value);
             }

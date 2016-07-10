@@ -13,7 +13,7 @@
 		<div class="container-fluid">
 			<a class="navbar-brand" href="/">
 				<img src="https://avatars1.githubusercontent.com/u/1595230?v=3&s=460" alt="">
-				<span data-i18n="myself.fullName">Alexander Pavlyuk</span>
+				<span data-i18n="common: myself.fullName">Alexander Pavlyuk</span>
 			</a>
 			<ul class="nav navbar-nav">
 				<li>
@@ -68,14 +68,15 @@
 
 					<div class="jumbotron">
 						<div class="container">
-							<h1>Welcome to my page!</h1>
-							<p>
+							<h1 data-i18n="welcome: banner.title">Welcome to my page!</h1>
+							<p data-i18n="welcome: banner.text">
 								You can find some useful learning materials here.
-
 							</p>
 							<p>
 								<a class="btn btn-primary btn-lg" href="/patterns-n-practices">
-								Check out Patterns & Practices
+								<span data-i18n="welcome: banner.link">
+									Check out Patterns & Practices
+								</span>
 							</a>
 							</p>
 						</div>
@@ -97,6 +98,7 @@
 	<script src="https://code.jquery.com/jquery-1.11.1.min.js"></script>
 	<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/js/bootstrap.min.js"></script>
 	<script src="/libs/i18next/i18next-3.3.1.min.js"></script>
+	<script src="/libs/i18next/i18next-xhr-backend.0.6.0.min.js"></script>
 	<script src="/scripts.js"></script>
 </body>
 </html>
