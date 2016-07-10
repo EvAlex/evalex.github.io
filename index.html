@@ -4,23 +4,61 @@
 	<title>Alexander Pavlyuk - My page</title>
 
 	<link href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/css/bootstrap.min.css" rel="stylesheet" type="text/css" media="all" />
+	<link rel="stylesheet" href="/libs/flag-icon/css/flag-icon.min.css">
 	<link rel="stylesheet" href="/styles.css">
 </head>
 <body>
 	
 	<nav class="navbar navbar-default navbar-static-top" role="navigation">
-		<a class="navbar-brand" href="/">
-			<img src="https://avatars1.githubusercontent.com/u/1595230?v=3&s=460" alt="">
-			<span>Alexander Pavlyuk</span>
-		</a>
-		<ul class="nav navbar-nav">
-			<li>
-				<a href="/patterns-n-practices">Patterns & Practices</a>
-			</li>
-			<li>
-				<a href="#">About Me</a>
-			</li>
-		</ul>
+		<div class="container-fluid">
+			<a class="navbar-brand" href="/">
+				<img src="https://avatars1.githubusercontent.com/u/1595230?v=3&s=460" alt="">
+				<span data-i18n="myself.fullName">Alexander Pavlyuk</span>
+			</a>
+			<ul class="nav navbar-nav">
+				<li>
+					<a href="/patterns-n-practices">Patterns & Practices</a>
+				</li>
+				<li>
+					<a href="#">About Me</a>
+				</li>
+			</ul>
+
+			<ul class="nav navbar-nav navbar-right">
+				<li class="dropdown">
+					<a class="dropdown-toggle lang-list-dropdown"
+					   href="javascript:void(0);" 
+					   data-toggle="dropdown"
+					   role="button" 
+					   aria-haspopup="true" 
+					   aria-expanded="false">
+						<span class="selected-lang">
+							<span class="selected-lang_flag flag-icon flag-icon-ru"></span>
+							<span class="selected-lang_name">Русский</span>							
+						</span>
+						<span class="caret"></span>
+					</a>
+					<ul class="dropdown-menu lang-list">
+						<li class="active">
+							<a class="lang-list-item" 
+							   data-key="ru" 
+							   href="javascript:void(0);">
+							   <span class="lang-list-item_flag flag-icon flag-icon-ru"></span>
+							   <span class="lang-list-item_name">Русский</span>							   
+							</a>
+						</li>
+						<li>
+							<a class="lang-list-item" 
+							   data-key="en" 
+							   href="javascript:void(0);">
+							   <span class="lang-list-item_flag flag-icon flag-icon-gb"></span>
+							   <span class="lang-list-item_name">English</span>
+							</a>
+						</li>
+					</ul>
+				</li>
+			</ul>
+		</div>
 	</nav>
 	
 	<div id="partial-content">
@@ -58,5 +96,7 @@
 
 	<script src="https://code.jquery.com/jquery-1.11.1.min.js"></script>
 	<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/js/bootstrap.min.js"></script>
+	<script src="/libs/i18next/i18next-3.3.1.min.js"></script>
+	<script src="/scripts.js"></script>
 </body>
 </html>
