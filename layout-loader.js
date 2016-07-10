@@ -2,6 +2,7 @@
 
 function LayoutLoader() {
     var httpBackend = new HttpBackend(),
+        loadingScreen = new LoadingScreen(),
         actualSettings = null,
         self = this;
 
@@ -13,6 +14,7 @@ function LayoutLoader() {
             settings = {};
         }
         actualSettings = mergeWithDefaultSettings(settings);
+        loadingScreen.show();
         httpBackend.get(actualSettings.url, onLayoutLoaded)
     }
 
@@ -20,10 +22,20 @@ function LayoutLoader() {
         if (err) {
             return console.error('Failed to load layout.', err);
         }
+
         var layout = new HtmlDocument(layoutHtml),
             partial = new HtmlDocument(document.documentElement);
         mergeDocuments(partial, layout);
         performCompleteCallbacks();
+
+        window.setTimeout(function () {
+            loadingScreen.hide(0, actualSettings.loadingScreen.fadeOutDelay);
+        }, actualSettings.loadingScreen.pageLoadTimeout);
+        document.addEventListener('readystatechange', function () {
+            if (document.readyState === 'complete') {
+                loadingScreen.hide(0, actualSettings.loadingScreen.fadeOutDelay);                
+            }
+        });
     }
 
     function mergeDocuments(partial, layout) {
@@ -36,9 +48,11 @@ function LayoutLoader() {
         for (var i = 0; i < actualSettings.insertSections.length; i++) {
             var s = actualSettings.insertSections[i],
                 layoutSection = layout.querySelector(s.layout),
-                partialSection = partial.querySelector(s.partial);
+                partialSection = partial.querySelector(s.partial),
+                exclude = Array.prototype.slice.call(partialSection.getElementsByTagName('script'))
+                    .concat([loadingScreen.getElement()]);
             removeAllChildren(layoutSection);
-            moveAllChildren(partialSection, layoutSection);    
+            moveAllChildren(partialSection, layoutSection, exclude);    
         }
         var layoutBody = layout.querySelector('body'),
             partialBody = partial.querySelector('body');
@@ -144,6 +158,10 @@ function LayoutLoader() {
                 complete: [
                     activateNavLinks
                 ]
+            },
+            loadingScreen: {
+                pageLoadTimeout: 1500,
+                fadeOutDelay: 300
             }
         }
     }
@@ -162,10 +180,26 @@ function LayoutLoader() {
      * Moves all child nodes from src node to dest node
      * @param {Node} src
      * @param {Node} dest
+     * @param {Node[]} excludeNodes
      */
-    function moveAllChildren(src, dest) {
-        while (src.firstChild) {
-            dest.appendChild(src.firstChild);
+    function moveAllChildren(src, dest, excludeNodes) {
+        if (typeof excludeNodes === 'undefined') {
+            excludeNodes = [];
+        }
+        var index = 0;
+        while (src.childNodes[index]) {
+            var match = false;
+            for (var i = 0; i < excludeNodes.length && !match; i++) {
+                if (excludeNodes[i] === src.childNodes[index]) {
+                    match = true;
+                }
+            }
+
+            if (match) {
+                index++;
+            } else {
+                dest.appendChild(src.childNodes[index]);
+            }
         }
     }
 
@@ -280,5 +314,59 @@ function HttpBackend() {
 
     function stringToJson(data) {
         return JSON.parse(data);
+    }
+}
+
+function LoadingScreen() {
+    var element = null,
+        shown = false,
+        self = this;
+
+    this.show = show;
+    this.hide = hide;
+    this.getElement = getElement;
+    this.isShown = isShown;
+
+    ///////////////////////////////
+
+    function show() {
+        if (shown === true) {
+            return;
+        }
+        shown = true;
+
+        element = document.createElement('div');
+        element.style.position = 'absolute';
+        element.style.top = 0;
+        element.style.right = 0;
+        element.style.bottom = 0;
+        element.style.left = 0;
+        element.style.background = 'white';
+        element.style.zIndex = 9000;
+        document.body.appendChild(element);
+    }
+
+    function hide(delay, fadeOutDelay) {
+        if (shown === false) {
+            return;
+        }
+        shown = false;
+
+        window.setTimeout(function () {
+            element.style.transition = 'opacity ' + (fadeOutDelay / 1000) + 's linear';
+            element.style.opacity = 0;
+            window.setTimeout(function () {
+                document.body.removeChild(element);
+                element = null;
+            }, fadeOutDelay);            
+        }, delay);
+    }
+
+    function getElement() {
+        return element;
+    }
+
+    function isShown() {
+        return shown;
     }
 }
