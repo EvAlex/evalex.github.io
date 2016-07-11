@@ -6,6 +6,7 @@
     function LayoutLoader() {
 
         this.loadLayout = loadLayout;
+        this.ajaxifyNavLinks = ajaxifyNavLinks;
         this.defaultSettings = getDefaultSettings();
 
         /////////////////////////////////////////////////////////
@@ -23,6 +24,33 @@
             httpBackend.get(actualSettings.url, onLayoutLoaded)
         }
 
+        function ajaxifyNavLinks() {
+            Array.prototype.slice.call(document.getElementsByTagName('a'))
+                .filter(function (a) { return urlIsWithinCurrentOrigin(a.href) })
+                .forEach(function (a) { a.addEventListener('click', onNavLinkClicked)});
+        }
+
+        /**
+         * @param {MouseEvent} e
+         */
+        function onNavLinkClicked(e) {
+            httpBackend.get(e.currentTarget.href, onPartialLoaded)
+            e.preventDefault();
+            return false;
+        }
+
+        function urlIsWithinCurrentOrigin(url) {
+            return url.indexOf(window.location.origin) === 0 &&
+                (url !== window.location.href) &&
+                (url !== window.location.href + '#')
+                ||
+                url.indexOf('/') === 0 && url.indexOf('//') !== 0 &&
+                url.length > 0 && url.indexOf('/') !== 1 && 
+                    url.indexOf('http') !== 0 &&
+                    (url !== window.location.href) &&
+                    (url !== window.location.href + '#');
+        }
+
         function onLayoutLoaded(err, layoutHtml) {
             if (err) {
                 return console.error('Failed to load layout.', err);
@@ -32,6 +60,7 @@
                 partial = new HtmlDocument(document.documentElement);
             mergeDocuments(partial, layout);
             performCompleteCallbacks();
+            ajaxifyNavLinks();
 
             window.setTimeout(function () {
                 loadingScreen.hide(0, actualSettings.loadingScreen.fadeOutDelay);
@@ -43,12 +72,27 @@
             });
         }
 
+        function onPartialLoaded(err, partialHtml) {
+            if (err) {
+                return console.error('Failed to load partial.', err);
+            }
+
+            var layout = new HtmlDocument(document.documentElement),
+                partial = new HtmlDocument(partialHtml);
+            
+            mergeDocumentsSection(
+                partial.html.getElementsByTagName('head')[0],
+                layout.html.getElementsByTagName('head')[0],
+                MergeStrategy.srcWins);
+        }
+
         function mergeDocuments(partial, layout) {
             for (var i = 0; i < actualSettings.mergeSections.length; i++) {
                 var s = actualSettings.mergeSections[i];
                 mergeDocumentsSection(
+                    layout.querySelector(s.layout),
                     partial.querySelector(s.partial),
-                    layout.querySelector(s.layout));
+                    MergeStrategy.destWins);
             }
             for (var i = 0; i < actualSettings.insertSections.length; i++) {
                 var s = actualSettings.insertSections[i],
@@ -71,23 +115,35 @@
         }
 
         /**
-         * @param {HTMLElement} elementInPartial
-         * @param {HTMLElement} elementInLayout
+         * @param {HTMLElement} src
+         * @param {HTMLElement} dest
+         * @param {Number} strategy
          */
-        function mergeDocumentsSection(elementInPartial, elementInLayout) {
-            for (var i = 0; i < elementInLayout.childNodes.length; i++) {
-                var nl = elementInLayout.childNodes.item(i),
+        function mergeDocumentsSection(src, dest, strategy) {
+            var srcLen = src.childNodes.length;
+            for (var i = 0; i < src.childNodes.length; i++) {
+                var srcNode = src.childNodes.item(i),
                     match = null;
-                for (var j = 0; j < elementInPartial.childNodes.length && match === null; j++) {
-                    var np = elementInPartial.childNodes.item(j);
-                    if (elementsAreSame(np, nl)) {
-                        match = np;
+                for (var j = 0; j < dest.childNodes.length && match === null; j++) {
+                    var destNode = dest.childNodes.item(j);
+                    if (elementsAreSame(destNode, srcNode)) {
+                        match = destNode;
                     }
                 }
                 if (match === null) {
-                    elementInPartial.appendChild(nl);
+                    dest.appendChild(srcNode);
+                } else if (strategy === MergeStrategy.srcWins) {
+                    dest.replaceChild(srcNode, match);             
+                }
+                if (src.childNodes.length < srcLen) {
+                    srcLen--;
+                    i--;
                 }
             }
+        }
+        var MergeStrategy = {
+            srcWins: 0,
+            destWins: 1
         }
 
         /**
@@ -191,11 +247,13 @@
             if (typeof excludeNodes === 'undefined') {
                 excludeNodes = [];
             }
-            var index = 0;
+            var index = 0,
+                scriptsToMove = [];
             while (src.childNodes[index]) {
-                var match = false;
+                var match = false,
+                    cur = src.childNodes[index];
                 for (var i = 0; i < excludeNodes.length && !match; i++) {
-                    if (excludeNodes[i] === src.childNodes[index]) {
+                    if (excludeNodes[i] === cur) {
                         match = true;
                     }
                 }
@@ -203,9 +261,27 @@
                 if (match) {
                     index++;
                 } else {
-                    dest.appendChild(src.childNodes[index]);
+                    if (cur.nodeName.toLowerCase() === 'script') {
+                        scriptsToMove.push(document.importNode(cur));
+                        index++;
+                    } else {
+                        dest.appendChild(cur);
+                    }
                 }
             }
+
+            var moveScripts = function (scripts) {
+                if (scripts.length === 0) {
+                    return;
+                }
+                var script = scripts.shift();
+                script.addEventListener('load', function (e) {
+                    console.log('Script loaded:', e.currentTarget.src);
+                    moveScripts(scripts);
+                });
+                dest.appendChild(script);
+            }
+            moveScripts(scriptsToMove);
         }
 
         function copy(obj, dest) {
@@ -234,17 +310,31 @@
         }
     }
 
-    function HtmlDocument(htmlString) {
-        var html = typeof htmlString === 'string'
-            ? getElement(htmlString, 'html')
-            : htmlString;
+    function HtmlDocument(htmlStringOrElement) {
+        var html = typeof htmlStringOrElement === 'string'
+            ? createHtmlElement(htmlStringOrElement)
+            : htmlStringOrElement;
 
+        this.html = html;
         this.querySelector = querySelector;
 
         //////////////////////////////////////////////////////////
 
         function querySelector(selector) {
             return html.querySelector(selector);
+        }
+
+        function createHtmlElement(htmlString) {
+            var element;
+            if (/^(\s*<!doctype)|(<html)/i.test(htmlString)) {
+                element = getElement(htmlStringOrElement, 'html');
+            } else {
+                element = document.createElement('html');
+                element.appendChild(document.createElement('head'));
+                element.appendChild(document.createElement('body'))
+                    .innerHTML = htmlString;
+            }
+            return element;
         }
 
         function getElement(htmlString, name) {
@@ -254,6 +344,10 @@
         }
 
         function findFirstTagContent(tag, str) {
+            if (str.indexOf('<' + tag) === -1) {
+                return null;
+            }
+            
             var startI = str.indexOf('<' + tag) + 1 + tag.length,
                 endI = str.indexOf('</' + tag + '>'),
                 i,
