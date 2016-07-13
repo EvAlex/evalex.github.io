@@ -15,7 +15,7 @@
 
     LayoutLoader._state = LayoutLoaderState.idle;
     LayoutLoader.getState = function () { return LayoutLoader._state; };
-    LayoutLoader.setState = function (value) { debugger; LayoutLoader._state = value; };
+    LayoutLoader.setState = function (value) { LayoutLoader._state = value; };
     LayoutLoader.history = [];
     function LayoutLoader() {
 
@@ -48,7 +48,7 @@
         function ajaxifyNavLinks() {
             Array.prototype.slice.call(document.getElementsByTagName('a'))
                 .filter(function (a) { return urlIsWithinCurrentOrigin(a.href) })
-                .forEach(function (a) { a.addEventListener('click', onNavLinkClicked)});
+                .forEach(function (a) { a.addEventListener('click', onNavLinkClicked) });
         }
 
         /**
@@ -75,10 +75,10 @@
                 (url !== window.location.href + '#')
                 ||
                 url.indexOf('/') === 0 && url.indexOf('//') !== 0 &&
-                url.length > 0 && url.indexOf('/') !== 1 && 
-                    url.indexOf('http') !== 0 &&
-                    (url !== window.location.href) &&
-                    (url !== window.location.href + '#');
+                url.length > 0 && url.indexOf('/') !== 1 &&
+                url.indexOf('http') !== 0 &&
+                (url !== window.location.href) &&
+                (url !== window.location.href + '#');
         }
 
         function onLayoutLoaded(err, layoutHtml) {
@@ -92,17 +92,26 @@
             performCompleteCallbacks();
             ajaxifyNavLinks();
 
-            window.setTimeout(function () {
+            waitPageReady(actualSettings.loadingScreen.pageLoadTimeout, function () {
                 loadingScreen.hide(0, actualSettings.loadingScreen.fadeOutDelay);
                 LayoutLoader.setState(LayoutLoaderState.idle);
-            }, actualSettings.loadingScreen.pageLoadTimeout);
+            });
+        }
+
+        function waitPageReady(timeout, cb) {
+            var done = false,
+                fn = function () {
+                    if (!done && typeof cb === 'function') {
+                        done = true;
+                        cb();
+                    }
+                };
+            window.setTimeout(fn, timeout);
             document.addEventListener('readystatechange', function () {
                 if (document.readyState === 'complete') {
-                    loadingScreen.hide(0, actualSettings.loadingScreen.fadeOutDelay);                
-                    LayoutLoader.setState(LayoutLoaderState.idle);
+                    fn();
                 }
             });
-
         }
 
         function onPartialLoaded(err, partialHtml) {
@@ -112,7 +121,7 @@
 
             var layout = new HtmlDocument(document.documentElement),
                 partial = new HtmlDocument(partialHtml);
-            
+
             mergeDocumentsSection(
                 partial.html.getElementsByTagName('head')[0],
                 layout.html.getElementsByTagName('head')[0],
@@ -121,7 +130,7 @@
             var tempNode = document.createElement('div');
             tempNode.style.display = 'none';
             document.body.appendChild(tempNode);
-            moveScriptTags(partial.html, tempNode, function () { 
+            moveScriptTags(partial.html, tempNode, function () {
                 onPartialReady(partial);
             });
         }
@@ -141,11 +150,12 @@
                     exclude = Array.prototype.slice.call(partialSection.getElementsByTagName('script'))
                         .concat([loadingScreen.getElement()]);
                 removeAllChildren(layoutSection);
-                moveAllChildren(partialSection, layoutSection, exclude);    
+                moveAllChildren(partialSection, layoutSection, exclude);
             }
 
-            window.setTimeout(() =>
-                LayoutLoader.setState(LayoutLoaderState.idle), 300);
+            waitPageReady(loadLayoutSettings.loadingScreen.pageLoadTimeout, function () {
+                LayoutLoader.setState(LayoutLoaderState.idle);
+            });
         }
 
         function mergeDocuments(partial, layout) {
@@ -163,7 +173,7 @@
                     exclude = Array.prototype.slice.call(partialSection.getElementsByTagName('script'))
                         .concat([loadingScreen.getElement()]);
                 removeAllChildren(layoutSection);
-                moveAllChildren(partialSection, layoutSection, exclude);    
+                moveAllChildren(partialSection, layoutSection, exclude);
             }
             var layoutBody = layout.querySelector('body'),
                 partialBody = partial.querySelector('body');
@@ -196,7 +206,7 @@
                 if (match === null) {
                     dest.appendChild(srcNode);
                 } else if (strategy === MergeStrategy.srcWins) {
-                    dest.replaceChild(srcNode, match);             
+                    dest.replaceChild(srcNode, match);
                 }
                 if (src.childNodes.length < srcLen) {
                     srcLen--;
@@ -246,7 +256,7 @@
                     a.classList.remove('active');
                     if (a.parentElement.nodeName.toLowerCase() === 'li') {
                         a.parentElement.classList.remove('active');
-                    }             
+                    }
                 }
             }
         }
@@ -297,7 +307,7 @@
         function removeAllChildren(node) {
             while (node.firstChild) {
                 node.removeChild(node.firstChild);
-            }    
+            }
         }
 
         /**
@@ -379,7 +389,7 @@
         }
 
         function isInlineScript(scriptElement) {
-            return !scriptElement.src && scriptElement.innerText.length > 0;            
+            return !scriptElement.src && scriptElement.innerText.length > 0;
         }
 
         function copy(obj, dest) {
@@ -456,14 +466,14 @@
         function getElement(htmlString, name) {
             var tag = document.createElement(name);
             tag.innerHTML = findFirstTagContent(name, htmlString);
-            return tag;      
+            return tag;
         }
 
         function findFirstTagContent(tag, str) {
             if (str.indexOf('<' + tag) === -1) {
                 return null;
             }
-            
+
             var startI = str.indexOf('<' + tag) + 1 + tag.length,
                 endI = str.indexOf('</' + tag + '>'),
                 i,
@@ -482,7 +492,7 @@
     }
 
     function HttpBackend() {
-        
+
         generateMethods(this);
 
         //////////////////////////////////////////////////////////
@@ -511,8 +521,8 @@
             xhr.addEventListener('readystatechange', function (e) {
                 if (xhr.readyState === 4) {
                     var err = xhr.status >= 200 && xhr.status < 300
-                            ? null
-                            : { status: xhr.status },
+                        ? null
+                        : { status: xhr.status },
                         data = err === null
                             ? dataConverterFn(xhr.responseText)
                             : null;
@@ -575,7 +585,7 @@
                 window.setTimeout(function () {
                     document.body.removeChild(element);
                     element = null;
-                }, fadeOutDelay);            
+                }, fadeOutDelay);
             }, delay);
         }
 
@@ -588,12 +598,12 @@
             var element = createElement('div', 'loading-screen');
             element
                 .appendChild(createElement('div', 'ls_inner'))
-                    .appendChild(createElement('div', 'ls_spinner-wrap'))
-                        .appendChild(createElement('div', 'sk-folding-cube'))
-                            .appendChild(createElement('div', 'sk-cube1 sk-cube')).parentElement
-                            .appendChild(createElement('div', 'sk-cube2 sk-cube')).parentElement
-                            .appendChild(createElement('div', 'sk-cube4 sk-cube')).parentElement
-                            .appendChild(createElement('div', 'sk-cube3 sk-cube'));
+                .appendChild(createElement('div', 'ls_spinner-wrap'))
+                .appendChild(createElement('div', 'sk-folding-cube'))
+                .appendChild(createElement('div', 'sk-cube1 sk-cube')).parentElement
+                .appendChild(createElement('div', 'sk-cube2 sk-cube')).parentElement
+                .appendChild(createElement('div', 'sk-cube4 sk-cube')).parentElement
+                .appendChild(createElement('div', 'sk-cube3 sk-cube'));
             return element;
         }
 
@@ -618,4 +628,4 @@
         }
     }
 
-}(window);
+} (window);
