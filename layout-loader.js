@@ -1,8 +1,22 @@
 +function (window) {
     "use strict";
 
+    if (typeof window.LayoutLoader !== 'undefined') {
+        return;
+    }
+
     window.LayoutLoader = LayoutLoader;
 
+    var LayoutLoaderState = {
+        idle: 0,
+        loadingLayout: 1,
+        loadingPartial: 2
+    }
+
+    LayoutLoader._state = LayoutLoaderState.idle;
+    LayoutLoader.getState = function () { return LayoutLoader._state; };
+    LayoutLoader.setState = function (value) { debugger; LayoutLoader._state = value; };
+    LayoutLoader.history = [];
     function LayoutLoader() {
 
         this.loadLayout = loadLayout;
@@ -16,10 +30,17 @@
             self = this;
 
         function loadLayout(settings) {
+            if (LayoutLoader.getState() !== LayoutLoaderState.idle) {
+                return;
+            }
+            LayoutLoader.setState(LayoutLoaderState.loadingLayout);
+
             if (typeof settings === 'undefined') {
                 settings = {};
             }
+
             actualSettings = mergeWithDefaultSettings(settings);
+            LayoutLoader.history.push(new LayoutLoaderHistoryEntry(LayoutLoaderHistoryEntryType.loadLayout, actualSettings));
             loadingScreen.show();
             httpBackend.get(actualSettings.url, onLayoutLoaded)
         }
@@ -34,9 +55,18 @@
          * @param {MouseEvent} e
          */
         function onNavLinkClicked(e) {
-            httpBackend.get(e.currentTarget.href, onPartialLoaded)
+            loadPartial(e.currentTarget.href);
             e.preventDefault();
             return false;
+        }
+
+        function loadPartial(url) {
+            if (LayoutLoader.getState() !== LayoutLoaderState.idle) {
+                return;
+            }
+            LayoutLoader.setState(LayoutLoaderState.loadingPartial);
+            LayoutLoader.history.push(new LayoutLoaderHistoryEntry(LayoutLoaderHistoryEntryType.loadPartial, { url: url }));
+            httpBackend.get(url, onPartialLoaded);
         }
 
         function urlIsWithinCurrentOrigin(url) {
@@ -64,12 +94,15 @@
 
             window.setTimeout(function () {
                 loadingScreen.hide(0, actualSettings.loadingScreen.fadeOutDelay);
+                LayoutLoader.setState(LayoutLoaderState.idle);
             }, actualSettings.loadingScreen.pageLoadTimeout);
             document.addEventListener('readystatechange', function () {
                 if (document.readyState === 'complete') {
                     loadingScreen.hide(0, actualSettings.loadingScreen.fadeOutDelay);                
+                    LayoutLoader.setState(LayoutLoaderState.idle);
                 }
             });
+
         }
 
         function onPartialLoaded(err, partialHtml) {
@@ -84,6 +117,35 @@
                 partial.html.getElementsByTagName('head')[0],
                 layout.html.getElementsByTagName('head')[0],
                 MergeStrategy.srcWins);
+
+            var tempNode = document.createElement('div');
+            tempNode.style.display = 'none';
+            document.body.appendChild(tempNode);
+            moveScriptTags(partial.html, tempNode, function () { 
+                onPartialReady(partial);
+            });
+        }
+
+        function onPartialReady(partial) {
+            var e = LayoutLoader.history[LayoutLoader.history.length - 1],
+                loadLayoutSettings = self.defaultSettings;
+            if (e.type === LayoutLoaderHistoryEntryType.loadLayout) {
+                loadLayoutSettings = e.settings;
+            }
+
+            var layout = new HtmlDocument(document.documentElement);
+            for (var i = 0; i < loadLayoutSettings.insertSections.length; i++) {
+                var s = loadLayoutSettings.insertSections[i],
+                    layoutSection = layout.querySelector(s.layout),
+                    partialSection = partial.querySelector(s.partial),
+                    exclude = Array.prototype.slice.call(partialSection.getElementsByTagName('script'))
+                        .concat([loadingScreen.getElement()]);
+                removeAllChildren(layoutSection);
+                moveAllChildren(partialSection, layoutSection, exclude);    
+            }
+
+            window.setTimeout(() =>
+                LayoutLoader.setState(LayoutLoaderState.idle), 300);
         }
 
         function mergeDocuments(partial, layout) {
@@ -105,7 +167,8 @@
             }
             var layoutBody = layout.querySelector('body'),
                 partialBody = partial.querySelector('body');
-            moveAllChildren(layoutBody, partialBody);    
+            moveScriptTags(layoutBody, partialBody);
+            moveAllChildren(layoutBody, partialBody);
         }
 
         function performCompleteCallbacks() {
@@ -242,8 +305,9 @@
          * @param {Node} src
          * @param {Node} dest
          * @param {Node[]} excludeNodes
+         * @param {Function} cb
          */
-        function moveAllChildren(src, dest, excludeNodes) {
+        function moveAllChildren(src, dest, excludeNodes, cb) {
             if (typeof excludeNodes === 'undefined') {
                 excludeNodes = [];
             }
@@ -263,6 +327,9 @@
                 } else {
                     if (cur.nodeName.toLowerCase() === 'script') {
                         scriptsToMove.push(document.importNode(cur));
+                        if (!cur.src && cur.innerText.length > 0) {
+                            scriptsToMove[scriptsToMove.length - 1].innerText = cur.innerText;
+                        }
                         index++;
                     } else {
                         dest.appendChild(cur);
@@ -270,18 +337,49 @@
                 }
             }
 
+            //moveScriptTags(src, dest, cb);
+        }
+
+        /**
+         * @param {Node} src
+         * @param {Node} dest
+         * @param {Function} cb
+         */
+        function moveScriptTags(src, dest, cb) {
+            var scriptsToMove = [],
+                scriptsInSrc = src.getElementsByTagName('script');
+            for (var i = 0; i < scriptsInSrc.length; i++) {
+                var cur = scriptsInSrc[i];
+
+                scriptsToMove.push(document.importNode(cur));
+                if (isInlineScript(cur)) {
+                    scriptsToMove[scriptsToMove.length - 1].innerText = cur.innerText;
+                }
+            }
+
             var moveScripts = function (scripts) {
                 if (scripts.length === 0) {
+                    if (typeof cb === 'function') {
+                        cb();
+                    }
                     return;
                 }
                 var script = scripts.shift();
-                script.addEventListener('load', function (e) {
-                    console.log('Script loaded:', e.currentTarget.src);
+                if (isInlineScript(script)) {
                     moveScripts(scripts);
-                });
+                } else {
+                    script.addEventListener('load', function (e) {
+                        console.log('Script loaded:', e.currentTarget.src);
+                        moveScripts(scripts);
+                    });
+                }
                 dest.appendChild(script);
             }
             moveScripts(scriptsToMove);
+        }
+
+        function isInlineScript(scriptElement) {
+            return !scriptElement.src && scriptElement.innerText.length > 0;            
         }
 
         function copy(obj, dest) {
@@ -308,6 +406,24 @@
             }
             return dest;
         }
+    }
+
+    /**
+     * @type LayoutLoaderHistoryEntryType
+     */
+    var LayoutLoaderHistoryEntryType = {
+        loadLayout: 0,
+        loadPartial: 1
+    };
+
+    /**
+     * @class
+     * @param {Number} type History entry type. See LayoutLoaderHistoryEntryType
+     * @param {{}} settings Actual setting of the call
+     */
+    function LayoutLoaderHistoryEntry(type, settings) {
+        this.type = type;
+        this.settings = settings;
     }
 
     function HtmlDocument(htmlStringOrElement) {

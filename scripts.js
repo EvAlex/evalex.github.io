@@ -5,6 +5,7 @@
 
     function init() {
         new Internationalizer().init();
+        new LayoutLoader().ajaxifyNavLinks();
     }
 
     function Internationalizer() {
