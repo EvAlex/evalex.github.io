@@ -46,6 +46,9 @@
         }
 
         function ajaxifyNavLinks() {
+            window.onpopstate = function (e) {
+                loadPartial(window.location);
+            };
             Array.prototype.slice.call(document.getElementsByTagName('a'))
                 .filter(function (a) { return urlIsWithinCurrentOrigin(a.href) })
                 .forEach(function (a) { a.addEventListener('click', onNavLinkClicked) });
@@ -55,6 +58,7 @@
          * @param {MouseEvent} e
          */
         function onNavLinkClicked(e) {
+            history.pushState({}, '', e.currentTarget.href);
             loadPartial(e.currentTarget.href);
             e.preventDefault();
             return false;
@@ -114,6 +118,9 @@
             });
         }
 
+        /**
+         * @param {String} partialHtml
+         */
         function onPartialLoaded(err, partialHtml) {
             if (err) {
                 return console.error('Failed to load partial.', err);
@@ -135,6 +142,9 @@
             });
         }
 
+        /**
+         * @param {HtmlDocument} partial
+         */
         function onPartialReady(partial) {
             var e = LayoutLoader.history[LayoutLoader.history.length - 1],
                 loadLayoutSettings = self.defaultSettings;
@@ -634,4 +644,4 @@
         }
     }
 
-} (window);
+}(window);
