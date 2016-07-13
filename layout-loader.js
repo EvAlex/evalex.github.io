@@ -363,7 +363,8 @@
 
                 scriptsToMove.push(document.importNode(cur));
                 if (isInlineScript(cur)) {
-                    scriptsToMove[scriptsToMove.length - 1].innerText = cur.innerText;
+                    scriptsToMove[scriptsToMove.length - 1].appendChild(
+                        document.importNode(cur.firstChild));
                 }
             }
 
@@ -376,20 +377,25 @@
                 }
                 var script = scripts.shift();
                 if (isInlineScript(script)) {
+                    dest.appendChild(script);
                     moveScripts(scripts);
                 } else {
                     script.addEventListener('load', function (e) {
                         console.log('Script loaded:', e.currentTarget.src);
                         moveScripts(scripts);
                     });
+                    dest.appendChild(script);
                 }
-                dest.appendChild(script);
             }
             moveScripts(scriptsToMove);
         }
 
+        /**
+         * @param {HTMLScriptElement} scriptElement
+         * @returns {Boolean}
+         */
         function isInlineScript(scriptElement) {
-            return !scriptElement.src && scriptElement.innerText.length > 0;
+            return !scriptElement.src && scriptElement.firstChild instanceof Text;
         }
 
         function copy(obj, dest) {
