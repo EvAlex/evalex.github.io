@@ -5,7 +5,9 @@
 
     function init() {
         new Internationalizer().init();
+        /* Experimetal
         new LayoutLoader().ajaxifyNavLinks();
+        */
     }
 
     function Internationalizer() {
