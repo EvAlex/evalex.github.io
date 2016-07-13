@@ -99,7 +99,7 @@
             */
 
             waitPageReady(actualSettings.loadingScreen.pageLoadTimeout, function () {
-                //loadingScreen.hide(0, actualSettings.loadingScreen.fadeOutDelay);
+                loadingScreen.hide(0, actualSettings.loadingScreen.fadeOutDelay);
                 LayoutLoader.setState(LayoutLoaderState.idle);
             });
         }
